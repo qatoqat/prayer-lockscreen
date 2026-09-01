@@ -1,0 +1,14 @@
+{
+    "detect_location": true,
+    "latitude": null,
+    "longitude": null,
+    "timezone": null,
+    "city": "Your Location",
+    "method": "ISNA",
+    "source_wallpaper": "",
+    "overlay_position": "bottom-right",
+    "overlay_style": "modern",
+    "font_size": 24,
+    "use_24h": false,
+    "highlight_next_prayer": true
+}

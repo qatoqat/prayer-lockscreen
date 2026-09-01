@@ -1,0 +1,10 @@
+[Unit]
+Description=Update prayer times on lock screen wallpaper
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -m prayer_lockscreen run
+
+[Install]
+WantedBy=graphical-session.target

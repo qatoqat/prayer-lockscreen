@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prayer-lockscreen"
+version = "0.1.0"
+description = "Overlay prayer times on KDE Plasma lock screen wallpaper"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = ["Pillow>=10.0"]
+
+[project.scripts]
+prayer-lockscreen = "prayer_lockscreen.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["prayer_lockscreen*"]
