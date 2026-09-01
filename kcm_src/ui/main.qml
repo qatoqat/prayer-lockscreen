@@ -186,14 +186,22 @@ KCM.ScrollViewKCM {
             Kirigami.FormData.label: i18n("Display")
         }
 
-        Controls.SpinBox {
-            id: fontSizeSpin
+        RowLayout {
             Kirigami.FormData.label: i18n("Font size:")
-            from: 12
-            to: 72
-            value: kcm.fontSize
-            onValueModified: kcm.fontSize = value
-            suffix: " px"
+            spacing: Kirigami.Units.smallSpacing
+
+            Controls.SpinBox {
+                id: fontSizeSpin
+                from: 12
+                to: 72
+                value: kcm.fontSize
+                onValueModified: kcm.fontSize = value
+            }
+
+            Controls.Label {
+                text: i18n("px")
+                opacity: 0.7
+            }
         }
 
         Controls.CheckBox {
