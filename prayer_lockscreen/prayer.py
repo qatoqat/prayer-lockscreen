@@ -167,3 +167,12 @@ def next_prayer(prayer_times: dict[str, float], now_minutes: float) -> str:
         if name in prayer_times and prayer_times[name] > now_minutes:
             return name
     return "fajr"
+
+
+def current_prayer(prayer_times: dict[str, float], now_minutes: float) -> str:
+    """Return the name of the current active prayer."""
+    current = "fajr"
+    for name in PRAYER_ORDER:
+        if name in prayer_times and prayer_times[name] <= now_minutes:
+            current = name
+    return current
