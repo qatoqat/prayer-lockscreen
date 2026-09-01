@@ -2,14 +2,55 @@
 
 import json
 import urllib.request
+from dataclasses import dataclass
 
 
-def detect_location() -> tuple[float | None, float | None, str | None]:
-    """Detect (lat, lon, timezone) from IP. Returns (None, None, None) on failure."""
+@dataclass
+class Location:
+    lat: float
+    lon: float
+    timezone: str
+    city: str = ""
+    region: str = ""
+    country: str = ""
+
+
+def detect_location() -> Location | None:
+    """Detect location from IP. Returns None on failure."""
     apis = [
-        ("https://ipapi.co/json/", lambda d: (d["latitude"], d["longitude"], d["timezone"])),
-        ("https://ip-api.com/json/", lambda d: (d["lat"], d["lon"], d["timezone"])),
-        ("https://ipinfo.io/json", lambda d: (d["loc"].split(",")[0], d["loc"].split(",")[1], d["timezone"])),
+        (
+            "https://ipinfo.io/json",
+            lambda d: Location(
+                lat=float(d["loc"].split(",")[0]),
+                lon=float(d["loc"].split(",")[1]),
+                timezone=d.get("timezone", "UTC"),
+                city=d.get("city", ""),
+                region=d.get("region", ""),
+                country=d.get("country", ""),
+            ),
+        ),
+        (
+            "https://ipapi.co/json/",
+            lambda d: Location(
+                lat=float(d["latitude"]),
+                lon=float(d["longitude"]),
+                timezone=d.get("timezone", "UTC"),
+                city=d.get("city", ""),
+                region=d.get("region", ""),
+                country=d.get("country_name", ""),
+            ),
+        ),
+        (
+            "https://ip-api.com/json/?fields=status,country,regionName,city,timezone,lat,lon",
+            lambda d: Location(
+                lat=float(d["lat"]),
+                lon=float(d["lon"]),
+                timezone=d.get("timezone", "UTC"),
+                city=d.get("city", ""),
+                region=d.get("regionName", ""),
+                country=d.get("country", ""),
+            ),
+        ),
     ]
 
     for url, parser in apis:
@@ -17,9 +58,10 @@ def detect_location() -> tuple[float | None, float | None, str | None]:
             req = urllib.request.Request(url, headers={"User-Agent": "prayer-lockscreen/0.1"})
             with urllib.request.urlopen(req, timeout=5) as resp:
                 data = json.loads(resp.read().decode())
-                lat, lon, tz_str = parser(data)
-                return float(lat), float(lon), tz_str
+                loc = parser(data)
+                if loc.lat and loc.lon:
+                    return loc
         except Exception:
             continue
 
-    return None, None, None
+    return None

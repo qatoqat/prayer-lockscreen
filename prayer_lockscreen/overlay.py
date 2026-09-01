@@ -152,7 +152,18 @@ def draw_overlay(
 
         if is_next:
             accent = (100, 200, 255, 255)
-            draw.text((x + padding, py), "\u25b6", fill=accent, font=prayer_font, clip=clip)
+            # Draw a small filled triangle as indicator
+            tri_x = x + padding + 2
+            tri_y = py + 4
+            tri_size = 10
+            draw.polygon(
+                [
+                    (tri_x, tri_y),
+                    (tri_x, tri_y + tri_size),
+                    (tri_x + tri_size, tri_y + tri_size // 2),
+                ],
+                fill=accent,
+            )
             draw.text(
                 (x + padding + 24, py),
                 PRAYER_NAMES[name],

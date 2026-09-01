@@ -64,15 +64,20 @@ def cmd_run(args: argparse.Namespace) -> None:
     method = config.get("method", "ISNA")
     timezone_str = config.get("timezone")
     source_wallpaper = config.get("source_wallpaper", "")
+    city = config.get("city", "")
 
+    geo = None
     if detect or lat is None or lng is None:
         print("Detecting location from IP...")
-        geo_lat, geo_lng, geo_tz = detect_location()
-        if geo_lat is not None:
-            lat = lat or geo_lat
-            lng = lng or geo_lng
-            timezone_str = timezone_str or geo_tz
-            print(f"  Detected: {lat:.4f}, {lng:.4f} ({timezone_str})")
+        geo = detect_location()
+        if geo:
+            lat = lat or geo.lat
+            lng = lng or geo.lon
+            timezone_str = timezone_str or geo.timezone
+            if not city or city == "Your Location":
+                parts = [p for p in [geo.city, geo.region, geo.country] if p]
+                city = ", ".join(parts) if parts else "Your Location"
+            print(f"  Detected: {city} ({lat:.4f}, {lng:.4f})")
         elif lat is None or lng is None:
             print("Error: Could not detect location and no coordinates in config.", file=sys.stderr)
             sys.exit(1)
@@ -89,7 +94,7 @@ def cmd_run(args: argparse.Namespace) -> None:
     today = datetime.now()
     prayer_times = calc_prayer_times(today, lat, lng, method, timezone_str or "UTC")
 
-    city = config.get("city", "")
+    config["city"] = city
     print(f"Prayer times for {today.strftime('%Y-%m-%d')} ({city}):")
     for name in PRAYER_ORDER:
         if name in prayer_times:
@@ -116,17 +121,21 @@ def cmd_show(args: argparse.Namespace) -> None:
     lng = config.get("longitude")
     method = config.get("method", "ISNA")
     timezone_str = config.get("timezone")
+    city = config.get("city", "")
 
     if config.get("detect_location", False) or lat is None:
-        geo_lat, geo_lng, geo_tz = detect_location()
-        lat = lat or geo_lat
-        lng = lng or geo_lng
-        timezone_str = timezone_str or geo_tz
+        geo = detect_location()
+        if geo:
+            lat = lat or geo.lat
+            lng = lng or geo.lon
+            timezone_str = timezone_str or geo.timezone
+            if not city or city == "Your Location":
+                parts = [p for p in [geo.city, geo.region, geo.country] if p]
+                city = ", ".join(parts) if parts else "Your Location"
 
     today = datetime.now()
     prayer_times = calc_prayer_times(today, lat, lng, method, timezone_str or "UTC")
 
-    city = config.get("city", "")
     print(f"Prayer times for {today.strftime('%Y-%m-%d')} ({city}):")
     for name in PRAYER_ORDER:
         if name in prayer_times:
