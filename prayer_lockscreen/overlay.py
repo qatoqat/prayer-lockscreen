@@ -84,9 +84,9 @@ def draw_overlay(
     box_w = int(total_w + padding_x * 2)
     box_h = int(font_size + 4 + font_size + 8 + padding_y * 2)
 
-    # Center horizontally, near bottom
+    # Center horizontally and vertically
     box_x = (w - box_w) // 2
-    box_y = h - box_h - 60
+    box_y = (h - box_h) // 2
 
     # Clamp to screen
     box_x = max(0, min(box_x, w - box_w))
