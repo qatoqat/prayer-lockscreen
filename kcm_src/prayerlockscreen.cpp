@@ -9,6 +9,7 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QProcess>
 #include <QStandardPaths>
 
 K_PLUGIN_CLASS_WITH_JSON(PrayerLockScreen, "kcm_prayerlockscreen.json")
@@ -24,6 +25,12 @@ void PrayerLockScreen::save()
 {
     saveConfig();
     setNeedsSave(false);
+}
+
+void PrayerLockScreen::apply()
+{
+    saveConfig();
+    QProcess::startDetached(QStringLiteral("prayer-lockscreen"), {QStringLiteral("run")});
 }
 
 void PrayerLockScreen::loadConfig()

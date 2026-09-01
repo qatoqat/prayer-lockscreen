@@ -25,6 +25,7 @@ class PrayerLockScreen : public KQuickConfigModule
         PrayerLockScreen(QObject *parent, const KPluginMetaData &data);
 
         Q_INVOKABLE void save() override;
+        Q_INVOKABLE void apply();
 
         QString method() const { return m_method; }
         void setMethod(const QString &method);

@@ -222,8 +222,20 @@ KCM.ScrollViewKCM {
             Kirigami.FormData.label: i18n("Source:")
             placeholderText: i18n("/path/to/wallpaper.jpg")
             text: kcm.wallpaper
-            onTextChanged: kcm.wallpaper = text
+            onEditingFinished: kcm.wallpaper = text
             Layout.fillWidth: true
+        }
+
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Actions")
+        }
+
+        Controls.Button {
+            Kirigami.FormData.label: i18n("Apply:")
+            text: i18n("Apply Now")
+            icon.name: "dialog-ok-apply"
+            onClicked: kcm.apply()
         }
     }
 }
