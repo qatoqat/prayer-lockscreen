@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+"""Wrapper script for KDE System Settings integration."""
+from prayer_lockscreen.settings_qt import main
+
+if __name__ == "__main__":
+    main()

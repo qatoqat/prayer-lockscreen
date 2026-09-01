@@ -13,6 +13,7 @@ dependencies = ["Pillow>=10.0"]
 
 [project.scripts]
 prayer-lockscreen = "prayer_lockscreen.__main__:main"
+prayer-lockscreen-settings = "prayer_lockscreen.settings_qt:main"
 
 [tool.setuptools.packages.find]
 include = ["prayer_lockscreen*"]

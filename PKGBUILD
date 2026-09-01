@@ -6,7 +6,7 @@ pkgdesc="Overlay prayer times on KDE Plasma lock screen wallpaper"
 arch=('any')
 url="https://github.com/q4t/prayer-lockscreen"
 license=('MIT')
-depends=('python' 'python-pillow' 'kde-cli-tools')
+depends=('python' 'python-pillow' 'python-pyqt6' 'kde-cli-tools')
 makedepends=('python-build' 'python-installer' 'python-setuptools' 'python-wheel')
 options=(!strip)
 source=()
@@ -27,4 +27,10 @@ package() {
 
     install -Dm644 config/config.json \
         "$pkgdir/usr/share/prayer-lockscreen/config.json"
+
+    # KDE System Settings module
+    install -Dm644 prayer-lockscreen-settings.desktop \
+        "$pkgdir/usr/share/kservices6/prayer-lockscreen-settings.desktop"
+    install -Dm644 prayer-lockscreen-settings.desktop \
+        "$pkgdir/usr/share/kservices5/prayer-lockscreen-settings.desktop"
 }

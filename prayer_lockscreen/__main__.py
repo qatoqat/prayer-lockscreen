@@ -160,7 +160,7 @@ def cmd_timer(args: argparse.Namespace) -> None:
 
 def cmd_settings(args: argparse.Namespace) -> None:
     """Open KDE settings dialog."""
-    from .settings import cmd_settings as _run_settings
+    from .settings_qt import main as _run_settings
     _run_settings()
 
 
