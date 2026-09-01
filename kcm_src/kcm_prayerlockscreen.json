@@ -1,0 +1,12 @@
+{
+    "KPlugin": {
+        "Description": "Configure prayer times overlay for lock screen",
+        "FormFactors": [
+            "desktop"
+        ],
+        "Icon": "preferences-system-time",
+        "Name": "Prayer Lock Screen",
+        "X-KDE-System-Settings-Parent-Category": "personalization",
+        "X-KDE-Keywords": "prayer,solat,waktusolat,lockscreen"
+    }
+}
