@@ -108,7 +108,7 @@ def _tz_offset(date: datetime, timezone_str: str) -> float:
 
 def format_time(minutes: float, use_24h: bool = False) -> str:
     """Format minutes-from-midnight as a readable time string."""
-    minutes = minutes % 1440
+    minutes = round(minutes) % 1440
     h = int(minutes // 60)
     m = int(minutes % 60)
     if use_24h:
