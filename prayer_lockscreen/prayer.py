@@ -1,6 +1,8 @@
-"""Prayer time calculation using astronomical formulas."""
+"""Prayer time calculation with API fallback."""
 
+import json
 import math
+import urllib.request
 from datetime import datetime
 
 try:
@@ -23,28 +25,71 @@ PRAYER_NAMES = {
     "isha": "Isha",
 }
 
-ARABIC_NAMES = {
-    "fajr": "\u0627\u0644\u0641\u062c\u0631",
-    "sunrise": "\u0627\u0644\u0634\u0631\u0648\u0642",
-    "dhuhr": "\u0627\u0644\u0638\u0647\u0631",
-    "asr": "\u0627\u0644\u0639\u0635\u0631",
-    "maghrib": "\u0627\u0644\u0645\u063a\u0631\u0628",
-    "isha": "\u0627\u0644\u0639\u0634\u0627\u0621",
-}
-
-FAJR_ANGLES = {
-    "ISNA": 15.0, "MWL": 18.0, "Egypt": 19.5,
-    "Karachi": 18.0, "Tehran": 17.7, "Jafari": 16.0,
-    "Gulf": 19.5, "Kuwait": 18.0, "Qatar": 18.0,
-}
-
-ISHA_ANGLES = {
-    "ISNA": 15.0, "MWL": 17.0, "Egypt": 17.5,
-    "Karachi": 18.0, "Tehran": 14.0, "Jafari": 14.0,
-    "Gulf": 17.5, "Kuwait": 17.5, "Qatar": 18.0,
-}
-
 PRAYER_ORDER = ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"]
+
+# Aladhan API method IDs
+ALADHAN_METHODS = {
+    "ISNA": 2,
+    "MWL": 3,
+    "Egypt": 5,
+    "Karachi": 1,
+    "Tehran": 7,
+    "Gulf": 8,
+    "Kuwait": 9,
+    "Qatar": 10,
+    "JAKIM": 17,
+}
+
+# Malaysia bounding box (approx)
+MALAYSIA_BOUNDS = {
+    "lat_min": 0.8,
+    "lat_max": 7.4,
+    "lon_min": 99.6,
+    "lon_max": 119.3,
+}
+
+
+def _is_malaysia(lat: float, lon: float) -> bool:
+    """Check if coordinates are in Malaysia."""
+    return (
+        MALAYSIA_BOUNDS["lat_min"] <= lat <= MALAYSIA_BOUNDS["lat_max"]
+        and MALAYSIA_BOUNDS["lon_min"] <= lon <= MALAYSIA_BOUNDS["lon_max"]
+    )
+
+
+def _fetch_aladhan(date: datetime, lat: float, lon: float, method: str) -> dict | None:
+    """Fetch prayer times from Aladhan API. Returns dict or None on failure."""
+    date_str = date.strftime("%d-%m-%Y")
+    method_id = ALADHAN_METHODS.get(method, 3)
+
+    url = f"https://api.aladhan.com/v1/timings/{date_str}?latitude={lat}&longitude={lon}&method={method_id}"
+
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "prayer-lockscreen/0.1"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode())
+
+        if data.get("code") != 200:
+            return None
+
+        timings = data["data"]["timings"]
+        return {
+            "fajr": _parse_aladhan_time(timings["Fajr"]),
+            "sunrise": _parse_aladhan_time(timings["Sunrise"]),
+            "dhuhr": _parse_aladhan_time(timings["Dhuhr"]),
+            "asr": _parse_aladhan_time(timings["Asr"]),
+            "maghrib": _parse_aladhan_time(timings["Maghrib"]),
+            "isha": _parse_aladhan_time(timings["Isha"]),
+        }
+    except Exception:
+        return None
+
+
+def _parse_aladhan_time(time_str: str) -> float:
+    """Parse HH:MM time string to minutes from midnight."""
+    parts = time_str.split(":")
+    h, m = int(parts[0]), int(parts[1])
+    return h * 60 + m
 
 
 def _sun_position(date: datetime) -> tuple[float, float]:
@@ -106,33 +151,26 @@ def _tz_offset(date: datetime, timezone_str: str) -> float:
     return 0
 
 
-def format_time(minutes: float, use_24h: bool = False) -> str:
-    """Format minutes-from-midnight as a readable time string."""
-    minutes = round(minutes) % 1440
-    h = int(minutes // 60)
-    m = int(minutes % 60)
-    if use_24h:
-        return f"{h:02d}:{m:02d}"
-    period = "AM" if h < 12 else "PM"
-    h12 = h % 12 or 12
-    return f"{h12}:{m:02d} {period}"
-
-
-def calc_prayer_times(
-    date: datetime,
-    lat: float,
-    lng: float,
-    method: str = "ISNA",
-    timezone_str: str = "UTC",
-) -> dict[str, float]:
-    """Calculate prayer times (minutes from midnight) for a date and location."""
+def _calc_local(date: datetime, lat: float, lng: float, method: str, timezone_str: str) -> dict[str, float]:
+    """Fallback: calculate prayer times using astronomical formulas."""
     decl, eqtime = _sun_position(date)
 
     utc_noon = 720 + (-4 * lng) - eqtime
     local_noon = utc_noon + _tz_offset(date, timezone_str)
 
-    fajr_angle = FAJR_ANGLES.get(method, 15.0)
-    isha_angle = ISHA_ANGLES.get(method, 15.0)
+    fajr_angles = {
+        "ISNA": 15.0, "MWL": 18.0, "Egypt": 19.5,
+        "Karachi": 18.0, "Tehran": 17.7, "Jafari": 16.0,
+        "Gulf": 19.5, "Kuwait": 18.0, "Qatar": 18.0, "JAKIM": 20.0,
+    }
+    isha_angles = {
+        "ISNA": 15.0, "MWL": 17.0, "Egypt": 17.5,
+        "Karachi": 18.0, "Tehran": 14.0, "Jafari": 14.0,
+        "Gulf": 17.5, "Kuwait": 17.5, "Qatar": 18.0, "JAKIM": 18.0,
+    }
+
+    fajr_angle = fajr_angles.get(method, 15.0)
+    isha_angle = isha_angles.get(method, 15.0)
 
     times: dict[str, float] = {}
 
@@ -159,6 +197,42 @@ def calc_prayer_times(
         times["isha"] = local_noon + isha_ha * 4
 
     return times
+
+
+def format_time(minutes: float, use_24h: bool = False) -> str:
+    """Format minutes-from-midnight as a readable time string."""
+    minutes = round(minutes) % 1440
+    h = int(minutes // 60)
+    m = int(minutes % 60)
+    if use_24h:
+        return f"{h:02d}:{m:02d}"
+    period = "AM" if h < 12 else "PM"
+    h12 = h % 12 or 12
+    return f"{h12}:{m:02d} {period}"
+
+
+def get_prayer_times(
+    date: datetime,
+    lat: float,
+    lon: float,
+    method: str = "ISNA",
+    timezone_str: str = "UTC",
+) -> dict[str, float]:
+    """Get prayer times. Tries Aladhan API first, falls back to calculation.
+
+    For Malaysia coordinates, automatically uses JAKIM method.
+    """
+    # Auto-detect JAKIM for Malaysia
+    if _is_malaysia(lat, lon):
+        method = "JAKIM"
+
+    # Try API first
+    result = _fetch_aladhan(date, lat, lon, method)
+    if result is not None:
+        return result
+
+    # Fallback to calculation
+    return _calc_local(date, lat, lon, method, timezone_str)
 
 
 def next_prayer(prayer_times: dict[str, float], now_minutes: float) -> str:

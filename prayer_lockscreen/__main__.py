@@ -11,7 +11,7 @@ from pathlib import Path
 from .geolocate import detect_location
 from .kde import set_lockscreen_wallpaper
 from .overlay import draw_overlay
-from .prayer import PRAYER_NAMES, PRAYER_ORDER, calc_prayer_times, format_time
+from .prayer import PRAYER_NAMES, PRAYER_ORDER, get_prayer_times, format_time
 
 CONFIG_DIR = Path.home() / ".config" / "prayer-lockscreen"
 CACHE_DIR = Path.home() / ".cache" / "prayer-lockscreen"
@@ -92,7 +92,7 @@ def cmd_run(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     today = datetime.now()
-    prayer_times = calc_prayer_times(today, lat, lng, method, timezone_str or "UTC")
+    prayer_times = get_prayer_times(today, lat, lng, method, timezone_str or "UTC")
 
     config["city"] = city
     print(f"Prayer times for {today.strftime('%Y-%m-%d')} ({city}):")
@@ -134,7 +134,7 @@ def cmd_show(args: argparse.Namespace) -> None:
                 city = ", ".join(parts) if parts else "Your Location"
 
     today = datetime.now()
-    prayer_times = calc_prayer_times(today, lat, lng, method, timezone_str or "UTC")
+    prayer_times = get_prayer_times(today, lat, lng, method, timezone_str or "UTC")
 
     print(f"Prayer times for {today.strftime('%Y-%m-%d')} ({city}):")
     for name in PRAYER_ORDER:
