@@ -19,12 +19,11 @@ build() {
     python -m build --wheel --no-isolation
 
     # Build KCM
-    mkdir -p kcm_build/src
-    cp kcm_CMakeLists.txt kcm_build/CMakeLists.txt
-    cp kcm_src/*.cpp kcm_src/*.h kcm_src/*.json kcm_build/src/
-    mkdir -p kcm_build/src/ui
-    cp kcm_src/ui/*.qml kcm_build/src/ui/
-    cp kcm_src/CMakeLists.txt kcm_build/src/CMakeLists.txt
+    rm -rf kcm_build
+    mkdir -p kcm_build/ui
+    cp kcm_src/CMakeLists.txt kcm_build/
+    cp kcm_src/*.cpp kcm_src/*.h kcm_src/*.json kcm_build/
+    cp kcm_src/ui/*.qml kcm_build/ui/
     cd kcm_build
     cmake -B build/ -DCMAKE_INSTALL_PREFIX=/usr
     cmake --build build/
@@ -52,7 +51,7 @@ package() {
         "$pkgdir/usr/lib/qt6/plugins/plasma/kcms/systemsettings/kcm_prayerlockscreen.so"
 
     # Install KCM desktop file
-    install -Dm644 kcm_build/build/src/kcm_prayerlockscreen.desktop \
+    install -Dm644 kcm_build/build/kcm_prayerlockscreen.desktop \
         "$pkgdir/usr/share/applications/kcm_prayerlockscreen.desktop"
 
     # Cleanup
