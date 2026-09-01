@@ -222,7 +222,7 @@ KCM.ScrollViewKCM {
             Kirigami.FormData.label: i18n("Source:")
             placeholderText: i18n("/path/to/wallpaper.jpg")
             text: kcm.wallpaper
-            onEditingFinished: kcm.wallpaper = text
+            onTextChanged: kcm.wallpaper = text
             Layout.fillWidth: true
         }
     }

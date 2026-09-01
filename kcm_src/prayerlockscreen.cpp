@@ -20,6 +20,12 @@ PrayerLockScreen::PrayerLockScreen(QObject *parent, const KPluginMetaData &data)
     loadConfig();
 }
 
+void PrayerLockScreen::save()
+{
+    saveConfig();
+    setNeedsSave(false);
+}
+
 void PrayerLockScreen::loadConfig()
 {
     QString configPath = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation)
