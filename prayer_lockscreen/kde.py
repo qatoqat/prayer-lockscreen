@@ -24,6 +24,7 @@ def set_lockscreen_wallpaper(image_path: str) -> bool:
 
     file_url = f"file://{image_path}"
     try:
+        # Set the wallpaper image
         subprocess.run(
             [
                 kwc,
@@ -34,6 +35,20 @@ def set_lockscreen_wallpaper(image_path: str) -> bool:
                 "--group", "General",
                 "--key", "Image",
                 file_url,
+            ],
+            check=True,
+            capture_output=True,
+        )
+        # Set the wallpaper plugin
+        subprocess.run(
+            [
+                kwc,
+                "--file", "kscreenlockerrc",
+                "--group", "Greeter",
+                "--group", "Wallpaper",
+                "--key", "WallpaperPlugin",
+                "--type", "string",
+                "org.kde.image",
             ],
             check=True,
             capture_output=True,
