@@ -158,6 +158,12 @@ def cmd_timer(args: argparse.Namespace) -> None:
             print("Failed to enable timer.", file=sys.stderr)
 
 
+def cmd_settings(args: argparse.Namespace) -> None:
+    """Open KDE settings dialog."""
+    from .settings import cmd_settings as _run_settings
+    _run_settings()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="prayer-lockscreen",
@@ -168,6 +174,7 @@ def main() -> None:
     sub.add_parser("init", help="Create default config file")
     sub.add_parser("run", help="Generate overlay and set lock screen wallpaper")
     sub.add_parser("show", help="Print prayer times (no wallpaper change)")
+    sub.add_parser("settings", help="Open KDE settings dialog")
 
     p_timer = sub.add_parser("timer", help="Manage systemd user timer")
     p_timer.add_argument("--disable", action="store_true", help="Disable the timer")
@@ -179,6 +186,7 @@ def main() -> None:
         "run": cmd_run,
         "show": cmd_show,
         "timer": cmd_timer,
+        "settings": cmd_settings,
     }
 
     if args.command in commands:
