@@ -2,7 +2,6 @@
 
 import os
 from datetime import datetime
-from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -17,6 +16,12 @@ _FONT_PATHS = [
     "/usr/share/fonts/TTF/DejaVuSans{variant}.ttf",
     "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans{variant}.ttf",
 ]
+
+# Colors
+WHITE = (255, 255, 255, 255)
+GRAY = (180, 180, 180, 255)
+ACCENT = (100, 200, 255, 255)
+BG = (0, 0, 0, 180)
 
 
 def _get_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
@@ -50,142 +55,71 @@ def draw_overlay(
     overlay = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
 
-    font_size = config.get("font_size", 24)
-    title_font = _get_font(font_size + 8, bold=True)
-    prayer_font = _get_font(font_size, bold=False)
-    bold_font = _get_font(font_size, bold=True)
-    small_font = _get_font(font_size - 4, bold=False)
+    font_size = config.get("font_size", 32)
+    name_font = _get_font(font_size - 4, bold=False)
+    time_font = _get_font(font_size + 4, bold=True)
+    small_font = _get_font(font_size - 8, bold=False)
 
     now = datetime.now()
     now_minutes = now.hour * 60 + now.minute
     upcoming = next_prayer(prayer_times, now_minutes)
-
-    style = config.get("overlay_style", "modern")
-    padding = 30
-    line_height = font_size + 12
-
     use_24h = config.get("use_24h", False)
-    city = config.get("city", "")
-    date_str = now.strftime("%A, %B %d")
 
-    # Measure text widths to determine box size
-    title_text = "\u262a Prayer Times"
-    subtitle_text = f"{date_str} \u2022 {city}"
+    # Collect active prayers
+    active = [name for name in PRAYER_ORDER if name in prayer_times]
+    num = len(active)
 
-    title_w = draw.textlength(title_text, font=title_font)
-    subtitle_w = draw.textlength(subtitle_text, font=small_font)
-
-    # Measure prayer row widths (name + time)
-    max_prayer_row_w = 0
-    for name in PRAYER_ORDER:
-        if name not in prayer_times:
-            continue
+    # Measure column widths
+    col_gap = 40
+    col_widths = []
+    for name in active:
         time_str = format_time(prayer_times[name], use_24h)
-        name_w = draw.textlength(PRAYER_NAMES[name], font=prayer_font)
-        time_w = draw.textlength(time_str, font=prayer_font)
-        # Account for bold font on next prayer
-        if name == upcoming and config.get("highlight_next_prayer", True):
-            name_w = draw.textlength(PRAYER_NAMES[name], font=bold_font)
-        row_w = name_w + 24 + time_w  # 24 for indicator gap
-        max_prayer_row_w = max(max_prayer_row_w, row_w)
+        nw = draw.textlength(PRAYER_NAMES[name], font=name_font)
+        tw = draw.textlength(time_str, font=time_font)
+        col_widths.append(max(nw, tw))
 
-    countdown_text = ""
-    if upcoming in prayer_times:
-        remaining = prayer_times[upcoming] - now_minutes
-        if remaining < 0:
-            remaining += 1440
-        hrs, mins = int(remaining // 60), int(remaining % 60)
-        countdown_text = f"Next: {PRAYER_NAMES[upcoming]} in {hrs}h {mins}m"
-    countdown_w = draw.textlength(countdown_text, font=small_font) if countdown_text else 0
+    total_w = sum(col_widths) + col_gap * (num - 1)
+    padding_x = 40
+    padding_y = 24
+    box_w = int(total_w + padding_x * 2)
+    row_gap = 8
+    box_h = int(font_size + 4 + font_size + 8 + padding_y * 2)
 
-    content_w = max(title_w, subtitle_w, max_prayer_row_w, countdown_w)
-    box_width = int(content_w + padding * 2 + 16)  # extra margin
-    box_width = max(box_width, 300)  # minimum width
-    box_width = min(box_width, w - padding * 2)  # don't exceed screen
+    # Center on screen
+    x = (w - box_w) // 2
+    y = h - box_h - 40  # near bottom
 
-    num_prayers = sum(1 for name in PRAYER_ORDER if name in prayer_times)
-    box_height = padding * 2 + line_height * (num_prayers + 2)  # title + subtitle + prayers
+    # Clamp to screen
+    x = max(0, min(x, w - box_w))
+    y = max(0, min(y, h - box_h))
 
-    position = config.get("overlay_position", "bottom-right")
-    if position == "bottom-right":
-        x, y = w - box_width - padding, h - box_height - padding
-    elif position == "bottom-left":
-        x, y = padding, h - box_height - padding
-    elif position == "top-right":
-        x, y = w - box_width - padding, padding
-    elif position == "top-left":
-        x, y = padding, padding
-    else:
-        x, y = (w - box_width) // 2, (h - box_height) // 2
+    # Background
+    draw.rounded_rectangle([x, y, x + box_w, y + box_h], radius=16, fill=BG)
 
-    # Clamp to screen bounds
-    x = max(0, min(x, w - box_width))
-    y = max(0, min(y, h - box_height))
+    # Draw columns
+    cx = x + padding_x
+    name_y = y + padding_y
+    time_y = name_y + font_size + 4
 
-    if style == "modern":
-        draw.rounded_rectangle([x, y, x + box_width, y + box_height], radius=20, fill=(0, 0, 0, 160))
-    elif style == "minimal":
-        draw.rectangle([x, y, x + box_width, y + box_height], fill=(0, 0, 0, 120))
-    else:
-        draw.rectangle([x, y, x + box_width, y + box_height], fill=(0, 0, 0, 200))
-
-    # Clip region for text
-    clip = (x + padding, y, x + box_width - padding, y + box_height)
-
-    draw.text((x + padding, y + padding), title_text, fill=(255, 255, 255, 255), font=title_font)
-    draw.text(
-        (x + padding, y + padding + line_height + 8),
-        subtitle_text,
-        fill=(200, 200, 200, 255),
-        font=small_font,
-    )
-
-    start_y = y + padding + line_height + 30
-
-    for i, name in enumerate(PRAYER_ORDER):
-        if name not in prayer_times:
-            continue
-
-        py = start_y + i * line_height
+    for i, name in enumerate(active):
         time_str = format_time(prayer_times[name], use_24h)
         is_next = (name == upcoming) and config.get("highlight_next_prayer", True)
 
-        if is_next:
-            accent = (100, 200, 255, 255)
-            # Draw a small filled triangle as indicator
-            tri_x = x + padding + 2
-            tri_y = py + 4
-            tri_size = 10
-            draw.polygon(
-                [
-                    (tri_x, tri_y),
-                    (tri_x, tri_y + tri_size),
-                    (tri_x + tri_size, tri_y + tri_size // 2),
-                ],
-                fill=accent,
-            )
-            draw.text(
-                (x + padding + 24, py),
-                PRAYER_NAMES[name],
-                fill=(255, 255, 255, 255),
-                font=bold_font,
-                clip=clip,
-            )
-            time_x = x + box_width - padding - draw.textlength(time_str, font=prayer_font)
-            draw.text((time_x, py), time_str, fill=accent, font=prayer_font, clip=clip)
-        else:
-            draw.text((x + padding, py), PRAYER_NAMES[name], fill=(200, 200, 200, 255), font=prayer_font, clip=clip)
-            time_x = x + box_width - padding - draw.textlength(time_str, font=prayer_font)
-            draw.text((time_x, py), time_str, fill=(255, 255, 255, 255), font=prayer_font, clip=clip)
+        name_color = ACCENT if is_next else GRAY
+        time_color = ACCENT if is_next else WHITE
 
-    if countdown_text:
-        draw.text(
-            (x + padding, start_y + num_prayers * line_height + 8),
-            countdown_text,
-            fill=(100, 200, 255, 255),
-            font=small_font,
-            clip=clip,
-        )
+        # Center text in column
+        nw = draw.textlength(PRAYER_NAMES[name], font=name_font)
+        tw = draw.textlength(time_str, font=time_font)
+        col_w = col_widths[i]
+
+        name_x = cx + (col_w - nw) // 2
+        time_x = cx + (col_w - tw) // 2
+
+        draw.text((name_x, name_y), PRAYER_NAMES[name], fill=name_color, font=name_font)
+        draw.text((time_x, time_y), time_str, fill=time_color, font=time_font)
+
+        cx += col_w + col_gap
 
     result = Image.alpha_composite(img, overlay)
     if output_path.endswith((".jpg", ".jpeg")):
